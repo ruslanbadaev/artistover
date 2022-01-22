@@ -1,3 +1,1 @@
-# zombie-game
-# artistover
 # artistover
