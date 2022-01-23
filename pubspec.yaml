@@ -22,6 +22,7 @@ dependencies:
   url_launcher: 6.0.18
   flutter_svg: 1.0.3
   solid_bottom_sheet: 0.1.10
+  bottom_sheet_bar: 2.1.1
 
 dev_dependencies:
   flutter_test:

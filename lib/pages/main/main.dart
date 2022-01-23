@@ -1,3 +1,4 @@
+import 'package:bottom_sheet_bar/bottom_sheet_bar.dart';
 import 'package:camerawesome/camerapreview.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/models/orientations.dart';
@@ -8,7 +9,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:solid_bottom_sheet/solid_bottom_sheet.dart';
 
 import '../../utils/constants/colors.dart';
 import '../../utils/constants/images.dart';
@@ -30,7 +30,7 @@ class Main extends StatefulWidget {
 class _MainState extends State<Main> with TickerProviderStateMixin {
   ValueNotifier<Sensors> _sensor = ValueNotifier(Sensors.BACK);
   ValueNotifier<Size> _photoSize = ValueNotifier(Size(1, 1));
-
+  BottomSheetBarController bottomSheetController = BottomSheetBarController();
   double _imageWidth = 10;
   double _imageHeight = 10;
 
@@ -61,49 +61,93 @@ class _MainState extends State<Main> with TickerProviderStateMixin {
       builder: (controller) {
         return Scaffold(
           backgroundColor: AppColors.LIGHT,
-          body: Stack(
-            children: [
-              SizedBox(
-                width: _screenWidth,
-                height: _screenHeight,
-                child: CameraAwesome(
-                  testMode: false,
-                  onPermissionsResult: (bool? result) {},
-                  selectDefaultSize: (List<Size> availableSizes) => Size(1920, 1080),
-                  onOrientationChanged: (CameraOrientations? newOrientation) {},
-                  zoom: _zoomNotifier,
-                  sensor: _sensor,
-                  photoSize: _photoSize,
-                  captureMode: ValueNotifier(CaptureModes.PHOTO),
-                  orientation: DeviceOrientation.portraitUp,
-                  fitted: true,
-                ),
-              ),
-              if (controller.isShowManual)
-                Opacity(
-                  opacity: .8,
-                  child: Image.asset(
-                    AppImages.MANUAL,
-                    fit: BoxFit.cover,
+          bottomSheet: BottomSheetBar(
+            controller: bottomSheetController,
+            locked: false,
+            expandedBuilder: (scrollController) => Container(
+              color: AppColors.WHITE,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(height: 25),
+                  Text(
+                    AppStrings.OPTIONS,
+                    style: TextStyle(color: AppColors.PRIMARY, fontSize: 18, fontWeight: FontWeight.w700),
                   ),
-                ),
-              DraggableImage(
-                opacity: controller.opacity,
-                imageHeight: _imageHeight,
-                imageWidth: _imageWidth,
-                imageData: controller.imageData,
+                  SizedBox(height: 25),
+                  if (controller.imageData != null)
+                    FillingSlider(
+                      color: AppColors.PRIMARY.withOpacity(.7),
+                      fillColor: AppColors.SECONDARY.withOpacity(.7),
+                      child: Icon(
+                        Icons.blur_linear_rounded,
+                        color: AppColors.WHITE,
+                      ),
+                      initialValue: controller.opacity,
+                      onChange: (double x, double y) => {
+                        controller.setOpacity = x,
+                      },
+                      width: _screenWidth - 60,
+                      height: 50,
+                      direction: FillingSliderDirection.horizontal,
+                    ),
+                  if (controller.imageData != null) SizedBox(height: 25),
+                  FillingSlider(
+                    color: AppColors.PRIMARY.withOpacity(.7),
+                    fillColor: AppColors.SECONDARY.withOpacity(.7),
+                    initialValue: _zoomNotifier!.value,
+                    child: Icon(
+                      Icons.zoom_in_rounded,
+                      color: AppColors.WHITE,
+                    ),
+                    onChange: (double x, double y) => {
+                      _zoomNotifier?.value = x,
+                    },
+                    width: _screenWidth - 60,
+                    height: 50,
+                    direction: FillingSliderDirection.horizontal,
+                  ),
+                  SizedBox(height: 25),
+                  Text(
+                    AppStrings.ABOUT_ME,
+                    style: TextStyle(color: AppColors.SECONDARY, fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  SizedBox(height: 25),
+                  LinkButton(
+                    title: AppStrings.MY_GITHUB,
+                    width: _screenWidth - 60,
+                    height: 50,
+                    onTap: () => UrlLauncher.goTo(AppLinks.MY_GITHUB),
+                    icon: Icon(
+                      Icons.computer_rounded,
+                      color: AppColors.WHITE,
+                    ),
+                    gradientColors: [
+                      AppColors.PRIMARY.withOpacity(.8),
+                      AppColors.PRIMARY.withOpacity(.8),
+                      AppColors.SECONDARY.withOpacity(.8),
+                    ],
+                  ),
+                  SizedBox(height: 25),
+                  LinkButton(
+                    title: AppStrings.MY_TIKTOK,
+                    width: _screenWidth - 60,
+                    height: 50,
+                    onTap: () => UrlLauncher.goTo(AppLinks.MY_TIKTOK),
+                    icon: Icon(
+                      Icons.video_call_rounded,
+                      color: AppColors.WHITE,
+                    ),
+                    gradientColors: [
+                      AppColors.PRIMARY.withOpacity(.7),
+                      AppColors.SECONDARY.withOpacity(.8),
+                    ],
+                  ),
+                  SizedBox(height: 25),
+                ],
               ),
-              ManualButton(
-                action: controller.toggleManual,
-                isShowManual: controller.isShowManual,
-              ),
-            ],
-          ),
-          bottomSheet: SolidBottomSheet(
-            toggleVisibilityOnTap: true,
-            autoSwiped: false,
-            maxHeight: _screenHeight * 0.7,
-            headerBar: Container(
+            ),
+            collapsed: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topRight,
@@ -121,9 +165,14 @@ class _MainState extends State<Main> with TickerProviderStateMixin {
                 children: [
                   Padding(
                     padding: EdgeInsets.only(left: 12),
-                    child: Icon(
-                      Icons.keyboard_arrow_up_rounded,
-                      color: AppColors.WHITE,
+                    child: IconButton(
+                      onPressed: () => {
+                        bottomSheetController.expand(),
+                      },
+                      icon: Icon(
+                        Icons.keyboard_arrow_up_rounded,
+                        color: AppColors.WHITE,
+                      ),
                     ),
                   ),
                   Text(
@@ -134,107 +183,60 @@ class _MainState extends State<Main> with TickerProviderStateMixin {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(
-                    width: 28,
+                  Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: IconButton(
+                      onPressed: () => {
+                        controller.loadImage(),
+                        _animateImage(),
+                      },
+                      icon: Icon(
+                        Icons.photo_library_rounded,
+                        color: AppColors.WHITE,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            body: Container(
-              color: AppColors.WHITE,
-              height: 30,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(height: 25),
-                    Text(
-                      AppStrings.OPTIONS,
-                      style: TextStyle(color: AppColors.PRIMARY, fontSize: 18, fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 25),
-                    if (controller.imageData != null)
-                      FillingSlider(
-                        color: AppColors.PRIMARY.withOpacity(.7),
-                        fillColor: AppColors.SECONDARY.withOpacity(.7),
-                        child: Icon(
-                          Icons.blur_linear_rounded,
-                          color: AppColors.WHITE,
-                        ),
-                        initialValue: controller.opacity,
-                        onChange: (double x, double y) => {
-                          controller.setOpacity = x,
-                        },
-                        width: _screenWidth - 60,
-                        height: 50,
-                        direction: FillingSliderDirection.horizontal,
-                      ),
-                    if (controller.imageData != null) SizedBox(height: 25),
-                    FillingSlider(
-                      color: AppColors.PRIMARY.withOpacity(.7),
-                      fillColor: AppColors.SECONDARY.withOpacity(.7),
-                      initialValue: _zoomNotifier!.value,
-                      child: Icon(
-                        Icons.zoom_in_rounded,
-                        color: AppColors.WHITE,
-                      ),
-                      onChange: (x, y) => {
-                        _zoomNotifier?.value = x,
-                      },
-                      width: _screenWidth - 60,
-                      height: 50,
-                      direction: FillingSliderDirection.horizontal,
-                    ),
-                    SizedBox(height: 25),
-                    Text(
-                      AppStrings.ABOUT_ME,
-                      style: TextStyle(color: AppColors.SECONDARY, fontSize: 18, fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 25),
-                    LinkButton(
-                      title: AppStrings.MY_GITHUB,
-                      width: _screenWidth - 60,
-                      height: 50,
-                      onTap: () => UrlLauncher.goTo(AppLinks.MY_GITHUB),
-                      icon: Icon(
-                        Icons.computer_rounded,
-                        color: AppColors.WHITE,
-                      ),
-                      gradientColors: [
-                        AppColors.PRIMARY.withOpacity(.8),
-                        AppColors.PRIMARY.withOpacity(.8),
-                        AppColors.SECONDARY.withOpacity(.8),
-                      ],
-                    ),
-                    SizedBox(height: 25),
-                    LinkButton(
-                      title: AppStrings.MY_TIKTOK,
-                      width: _screenWidth - 60,
-                      height: 50,
-                      onTap: () => UrlLauncher.goTo(AppLinks.MY_TIKTOK),
-                      icon: Icon(
-                        Icons.video_call_rounded,
-                        color: AppColors.WHITE,
-                      ),
-                      gradientColors: [
-                        AppColors.PRIMARY.withOpacity(.7),
-                        AppColors.SECONDARY.withOpacity(.8),
-                      ],
-                    ),
-                  ],
+            body: Stack(
+              children: [
+                SizedBox(
+                  width: _screenWidth,
+                  height: _screenHeight,
+                  child: CameraAwesome(
+                    testMode: false,
+                    onPermissionsResult: (bool? result) {},
+                    selectDefaultSize: (List<Size> availableSizes) => Size(1920, 1080),
+                    onOrientationChanged: (CameraOrientations? newOrientation) {},
+                    zoom: _zoomNotifier,
+                    sensor: _sensor,
+                    photoSize: _photoSize,
+                    captureMode: ValueNotifier(CaptureModes.PHOTO),
+                    orientation: DeviceOrientation.portraitUp,
+                    fitted: true,
+                  ),
                 ),
-              ),
+                DraggableImage(
+                  opacity: controller.opacity,
+                  imageHeight: _imageHeight,
+                  imageWidth: _imageWidth,
+                  imageData: controller.imageData,
+                ),
+                if (controller.isShowManual)
+                  Opacity(
+                    opacity: .95,
+                    child: Image.asset(
+                      AppImages.MANUAL,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ManualButton(
+                  action: controller.toggleManual,
+                  isShowManual: controller.isShowManual,
+                ),
+              ],
             ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            child: Icon(
-              Icons.photo_library_rounded,
-              color: AppColors.PRIMARY,
-            ),
-            onPressed: () => {
-              controller.loadImage(),
-              _animateImage(),
-            },
           ),
         );
       },
